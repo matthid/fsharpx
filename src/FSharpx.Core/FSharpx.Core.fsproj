@@ -131,6 +131,8 @@
     <Compile Include="Async.IO.fs" />
     <Compile Include="Iteratee.fs" />
     <Compile Include="CSharpCompat.fs" />
+    <Compile Include="Logging\Logging.fs" />
+    <Compile Include="Logging\SimpleXmlWriterTraceListener.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core" Condition="$(TargetFrameworkVersion) == 'v3.5'">
@@ -144,5 +146,8 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Logging\" />
   </ItemGroup>
 </Project>
