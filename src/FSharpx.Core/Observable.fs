@@ -19,6 +19,72 @@ type ObservableUpdate<'T> =
   | Error of exn
   | Completed
 
+// Represents a stream of IObserver events. http://msdn.microsoft.com/en-us/library/ee370313.aspx
+type ObservableSource<'T>() =
+    let protect function1 =
+        let mutable ok = false 
+        try 
+            function1()
+            ok <- true 
+        finally
+            if not ok then failwith "IObserver method threw an exception."
+
+    let mutable key = 0
+
+    // Use a Map, not a Dictionary, because callers might unsubscribe in the OnNext 
+    // method, so thread-safe snapshots of subscribers to iterate over are needed. 
+    let mutable subscriptions = Map.empty : Map<int, IObserver<'T>>
+
+    let next(obs) = 
+        subscriptions |> Seq.iter (fun (KeyValue(_, value)) -> 
+            protect (fun () -> value.OnNext(obs)))
+
+    let completed() = 
+        subscriptions |> Seq.iter (fun (KeyValue(_, value)) -> 
+            protect (fun () -> value.OnCompleted()))
+
+    let error(err) = 
+        subscriptions |> Seq.iter (fun (KeyValue(_, value)) -> 
+            protect (fun () -> value.OnError(err)))
+
+    let thisLock = new obj()
+
+    let obs = 
+        { new IObservable<'T> with 
+            member this.Subscribe(obs) =
+                let key1 =
+                    lock thisLock (fun () ->
+                        let key1 = key
+                        key <- key + 1
+                        subscriptions <- subscriptions.Add(key1, obs)
+                        key1)
+                { new IDisposable with  
+                    member this.Dispose() = 
+                        lock thisLock (fun () -> 
+                            subscriptions <- subscriptions.Remove(key1)) } }
+
+    let mutable finished = false 
+    let checkFinished () = if finished then failwith "IObserver is already finished"
+    // The source ought to call these methods in serialized fashion (from 
+    // any thread, but serialized and non-reentrant). 
+    member this.Next(obs) =
+        checkFinished ()
+        next obs
+
+    member this.Completed() =
+        checkFinished ()
+        finished <- true
+        completed()
+
+    member this.Error(err) =
+        checkFinished ()
+        finished <- true
+        error err
+
+    // The IObservable object returned is thread-safe; you can subscribe  
+    // and unsubscribe (Dispose) concurrently. 
+    member this.AsObservable = obs 
+
 module Observable =
 
   /// Returns an observable that yields sliding windows of 
