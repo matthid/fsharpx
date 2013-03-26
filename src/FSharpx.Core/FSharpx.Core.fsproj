@@ -133,6 +133,7 @@
     <Compile Include="CSharpCompat.fs" />
     <Compile Include="Logging\Logging.fs" />
     <Compile Include="Logging\SimpleXmlWriterTraceListener.fs" />
+    <Compile Include="Task.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core" Condition="$(TargetFrameworkVersion) == 'v3.5'">
