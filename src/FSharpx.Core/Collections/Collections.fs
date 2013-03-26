@@ -11,6 +11,57 @@ open System.Runtime.CompilerServices
 open FSharpx
             
 module Seq =
+    /// Builds the lazy sequence and caches its results (like cache but iterates the sequence once)
+    let build seq =
+        let cached = seq |> Seq.cache
+        cached |> Seq.iter (fun _ -> ())
+        cached
+        
+    /// Try to take n items or less if n are not available.
+    let tryTake n seq =
+        // Note: You should prevent side effects like calling "MoveNext" more than x times on seq
+        // This is why takeWhile should not be used (because it calls MoveNext n+1 times
+        Seq.append (seq |> Seq.map Some) (Seq.initInfinite (fun i -> None))
+            |> Seq.take n
+            |> Seq.filter Option.isSome
+            |> Seq.map Option.get  
+  
+    type OneNoneMany<'a> = 
+        | ExactlyOne of 'a
+        | NoItems
+        | Many
+        
+    /// Checks if the given sequence has exactly one, none or many elements.
+    let tryExactlyOneOrNone (source : seq<_>) =
+        use e = source.GetEnumerator()
+        if e.MoveNext()
+        then 
+            let head = e.Current
+            if e.MoveNext()
+            then Many
+            else ExactlyOne head
+        else NoItems //empty list
+        
+    /// Tries to get exactly one item from the sequence and returns None if the sequence has more or none items.
+    let tryExactlyOne (source : seq<_>) =   
+        match source |> tryExactlyOneOrNone with
+        | ExactlyOne head -> Some head
+        | _ -> None
+
+#if NET40
+#else
+    /// Get exactly one item from the sequence and throw an exception if the sequence has more or none items.
+    let exactlyOne (source : seq<_>) =   
+        match source |> tryExactlyOneOrNone with
+        | ExactlyOne head -> head
+        | _ -> invalidArg "the given sequence \"source\" has more or none items and not exactly one!"
+#endif
+
+    /// checks if the given sequence has any elements, which means that it is not empty.
+    let any seq = 
+        seq |> Seq.isEmpty |> not
+        
+        
     /// <summary>
     /// Adds an index to a sequence
     /// </summary>
