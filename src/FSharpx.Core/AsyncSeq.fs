@@ -474,6 +474,13 @@ module AsyncSeq =
       | Nil -> return Nil 
     else return! input }
 
+  // Waits until all values are available
+  let await s = async {
+    let! results =
+      s |> fold (fun state item -> item :: state) []
+    return 
+      results |> List.rev |> List.toSeq }
+
 [<AutoOpen>]
 module AsyncSeqExtensions = 
   /// Builds an asynchronou sequence using the computation builder syntax
