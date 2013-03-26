@@ -92,6 +92,7 @@ type EventLogTraceListener(initData:string, name:string) =
                                                                                                  
 [<AutoOpen>]
 module LogInterfaceExtensions =
+    let L = sprintf
     /// executes the given action (a log function) on the given ActivityId
     let doOnActivity activity f =        
         let oldId = Trace.CorrelationManager.ActivityId
@@ -100,17 +101,24 @@ module LogInterfaceExtensions =
             f()
         finally
             Trace.CorrelationManager.ActivityId <- oldId
-      
+
     type ITracer with 
         member x.doInId f = 
             doOnActivity x.ActivityId f
-        member x.logHelper ty (s : string) =  
+        member private x.logHelper ty (o : obj) =  
             x.doInId 
                 (fun () ->
-                    x.TraceSource.TraceEvent(ty, 0, s)
+                    x.TraceSource.TraceEvent(ty, 0, "{0}", [|o|])
                     x.TraceSource.Flush())
         /// Logs a message with the given TraceEventType
-        member x.log ty fmt = Printf.kprintf (x.logHelper ty) fmt
+        member x.log ty (fmt:unit -> string) =
+            // call the formatting function only when we actually do logging 
+            // (in which case ToString() is called)
+            let helper = 
+                { new obj() with
+                    override x.ToString() = 
+                        fmt () }
+            x.logHelper ty helper
         /// Logs a TraceEventType.Verbose message
         member x.logVerb fmt = x.log System.Diagnostics.TraceEventType.Verbose fmt
         /// Logs a TraceEventType.Warning message
@@ -194,6 +202,12 @@ module Log =
     /// Wraps a TraceSource and provides a more F# friendly interface
     let DefaultTracer traceSource id = 
         createDefaultStateTracer traceSource id
+        
+    let EmptyTracer = 
+        let emptySource = Source "Empty"
+        emptySource.Listeners.Clear()
+        DefaultTracer emptySource "Empty"
+            
 
             
             
