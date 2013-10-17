@@ -1,5 +1,6 @@
 ﻿/// ListZipper
 /// original implementation taken from http://learnyouahaskell.com/zippers
+[<System.Obsolete("Namespace 'FSharpx.DataStructures' obsolete. Use 'FSharpx.Collections' or 'FSharpx.Collections.Experimental'  instead.")>]
 module FSharpx.DataStructures.ListZipper
 
 #nowarn "44"
@@ -11,21 +12,25 @@ type 'a ListZipper = { Focus : 'a list; Path : 'a list }
 let focus zipper =
     match zipper.Focus with
     | x::_ -> x
+    | _ -> invalidArg "zipper" "invalid"
 
 /// Changes the element under the focus
 let modify newElement zipper =
     match zipper.Focus with
     | x::xs -> { zipper with Focus = newElement::xs } 
+    | _ -> invalidArg "zipper" "invalid"
 
 /// Moves the zipper forward
 let forward zipper = 
     match zipper.Focus with
     | x::xs -> { Focus = xs; Path = x::zipper.Path }
+    | _ -> invalidArg "zipper" "invalid"
 
 /// Moves the zipper backwards
 let back zipper = 
     match zipper.Path with
     | b::bs -> { Focus = b::zipper.Focus; Path = bs }
+    | _ -> invalidArg "zipper" "invalid"
 
 /// Moves the zipper to the front
 let rec front zipper =

@@ -262,6 +262,21 @@ let ``tryTail on len 2 should return``() =
     ((head a.Value) = 1) |> should equal true
 
 [<Test>]
+let ``randomAccessList of randomAccessLists constructed by consing tail``() =
+
+    let windowFun windowLength = 
+        fun (v : RandomAccessList<RandomAccessList<int>>) t ->
+        if v.Head.Length = windowLength then RandomAccessList.cons (RandomAccessList.empty.Cons(t)) v
+        else RandomAccessList.tail v |> RandomAccessList.cons (RandomAccessList.cons t (RandomAccessList.head v))
+
+    let windowed = 
+        seq{1..100}
+        |> Seq.fold (windowFun 5) (RandomAccessList.empty.Cons RandomAccessList.empty<int>)
+
+    windowed.Length |> should equal 20
+    windowed.[2].Length |> should equal 5
+
+[<Test>]
 let ``nth length 1``() =
     let x = empty |> cons "a" 
 //    let x = empty |> cons "a" 
@@ -724,7 +739,7 @@ let ``structural equality``() =
     l1 = l3 |> should equal false
 
 [<Test>]
-let ``ofSeq``() =
+let ``ofSeq random access list``() =
     let x = ofSeq ["a";"b";"c";"d";"e";"f";"g";"h";"i";"j"]
 
     (((x |> nth 0) = "a") && ((x |> nth 1) = "b") && ((x |> nth 2) = "c") && ((x |> nth 3) = "d") 
@@ -738,3 +753,10 @@ let ``allow init``() =
 
     s |> Seq.toList |> should equal [0;2;4;6;8]
     randomAccessList |> Seq.toList |> should equal [0;2;4;6;8]
+
+[<Test>]
+let ``toSeq to list``() =
+    let l = ["f";"e";"d";"c";"b";"a"] 
+    let rl = ofSeq l
+
+    rl |> toSeq |> List.ofSeq |> should equal l

@@ -87,7 +87,7 @@ module Seq =
         Seq.fold (fun s e -> monoid.Combine(s, f e)) (monoid.Zero())
     
     /// Will iterate the current sequence until the given predicate is statisfied
-    let iterBreak (f:'a -> bool) (seq:seq<_>) = 
+    let iterBreak (f:'T -> bool) (seq:seq<_>) = 
         use en = seq.GetEnumerator() 
         let mutable run = true
         while en.MoveNext() && run do
@@ -194,7 +194,7 @@ module Seq =
 
     /// The same as Seq.nth except returns None if the sequence is empty or does not have enough elements
     let tryNth index (source : seq<_>) = 
-         let rec tryNth' index (e : System.Collections.Generic.IEnumerator<'a>) = 
+         let rec tryNth' index (e : System.Collections.Generic.IEnumerator<'T>) = 
              if not (e.MoveNext()) then None
              else if index < 0 then None
              else if index = 0 then Some(e.Current)
@@ -243,6 +243,21 @@ module Seq =
     let page page pageSize (source : seq<_>) =
           source |> skipNoFail (page * pageSize) |> Seq.truncate pageSize
         
+    let prependToAll sep list = 
+        seq{
+            for element in list do
+                yield sep
+                yield element
+        }
+
+    let intersperse (sep: 'a) (list: 'a seq) : 'a seq = 
+        seq { 
+            let notFirst = ref false 
+            for element in list do 
+              if !notFirst then yield sep; 
+              yield element; 
+              notFirst := true
+      } 
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Array = 
@@ -266,7 +281,7 @@ module Array =
     let ofTuple (source : obj) : obj array = 
         Microsoft.FSharp.Reflection.FSharpValue.GetTupleFields source
 
-    let toTuple (source : 'a array) : 't = 
+    let toTuple (source : 'T array) : 't = 
         let elements = source |> Array.map (fun x -> x :> obj)
         Microsoft.FSharp.Reflection.FSharpValue.MakeTuple(elements, typeof<'t>) :?> 't
 
@@ -383,18 +398,29 @@ module List =
             | [], [] -> ()
         ]
 
-    /// Merges two sequences by the default comparer for 'a
+    /// Merges two sequences by the default comparer for 'T
     let merge a b = mergeBy id a b
 
+    
+    let pad (amt: int) (elem: 'a) (list: 'a list) : 'a list = 
+        if amt >=0 then list @ (List.replicate amt elem)
+        else list
+
+    let fill (total:int) (elem: 'a) (list: 'a list) = 
+        if List.length list >= total then 
+            list
+        else
+            pad (total - List.length list) elem list
+                               
     /// List monoid
-    let monoid<'a> =
-        { new Monoid<'a list>() with
+    let monoid<'T> =
+        { new Monoid<'T list>() with
             override this.Zero() = []
             override this.Combine(a,b) = a @ b }
 
 module Set =
-    let monoid<'a when 'a : comparison> =
-        { new Monoid<'a Set>() with
+    let monoid<'T when 'T : comparison> =
+        { new Monoid<Set<'T>>() with
             override this.Zero() = Set.empty
             override this.Combine(a,b) = Set.union a b }
 
@@ -446,26 +472,26 @@ module Map =
     let union (map1: Map<_,_>) (map2: Map<_,_>) = 
         Seq.fold (fun m (KeyValue(k,v)) -> Map.add k v m) map1 map2
 
-    let choose (f : 'a -> 'b -> 'c option) (map : Map<'a,'b>) =
-        Map.fold (fun s k v -> 
+    let choose (f : 'T -> 'b -> 'c option) (map : Map<'T,'b>) =
+        (Map.empty, map) ||> Map.fold (fun s k v -> 
                     let result = f k v 
                     if Option.isSome result 
                     then Map.add k result.Value s
-                    else s) Map.empty map
+                    else s) 
 
     /// Allows to remove many keys from a Map
-    let removeMany (keys : seq<'a>) (map : Map<'a,'b>) =
+    let removeMany (keys : seq<'T>) (map : Map<'T,'b>) =
         Seq.fold (fun s key -> Map.remove key s) map keys
 
     /// Retrieves the values from a Map
-    let values (map : Map<'a,'b>) = 
+    let values (map : Map<'T,'b>) = 
         map |> Map.toSeq |> Seq.map snd
 
     /// Retrieves the keys from a Map    
-    let keys (map : Map<'a,'b>) = 
+    let keys (map : Map<'T,'b>) = 
         map |> Map.toSeq |> Seq.map fst
 
-    let findOrDefault key defaultValue (map : Map<'a,'b>) =
+    let findOrDefault key defaultValue (map : Map<'T,'b>) =
         defaultArg (map.TryFind key) defaultValue
             
     let monoid<'key, 'value when 'key : comparison> =
