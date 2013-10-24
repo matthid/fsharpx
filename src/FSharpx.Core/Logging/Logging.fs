@@ -207,7 +207,19 @@ module Log =
         let emptySource = Source "Empty"
         emptySource.Listeners.Clear()
         DefaultTracer emptySource "Empty"
-            
+        
+    /// Returns a Console-Logger for debugging purposes
+    let ConsoleLogger level =
+        new System.Diagnostics.ConsoleTraceListener(
+            Filter = new EventTypeFilter(level), 
+            TraceOutputOptions = TraceOptions.DateTime)
+
+    /// Sets the source to print into the given logger
+    let SetSource logger (source:TraceSource) =
+        source.Listeners.Clear()
+        source.Switch.Level <- SourceLevels.Verbose
+        source.Listeners.Add logger |> ignore
+
 
             
             
