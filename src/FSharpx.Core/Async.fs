@@ -5,6 +5,7 @@
 namespace FSharp.Control
 open System
 open System.Threading
+open FSharp.Control
 
 // ----------------------------------------------------------------------------
 

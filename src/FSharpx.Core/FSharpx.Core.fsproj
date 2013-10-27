@@ -30,7 +30,7 @@
     <Optimize>true</Optimize>
     <Tailcalls>true</Tailcalls>
     <OutputPath>..\..\build\</OutputPath>
-    <DefineConstants>TRACE;NET40</DefineConstants>
+    <DefineConstants>NET40</DefineConstants>
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>..\..\build\FSharpx.Core.XML</DocumentationFile>
   </PropertyGroup>
@@ -38,6 +38,9 @@
     <DefineConstants>NET35</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="$(TargetFrameworkVersion) == 'v4.0'">
+    <DefineConstants>NET40</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="$(TargetFrameworkVersion) == 'v4.5'">
     <DefineConstants>NET40</DefineConstants>
   </PropertyGroup>
   <Import Project="..\..\lib\FSharp\Microsoft.Portable.FSharp.Targets" Condition="'$(TargetFramework)' == 'portable47'" />
@@ -133,8 +136,6 @@
     <Compile Include="Async.IO.fs" />
     <Compile Include="Iteratee.fs" />
     <Compile Include="CSharpCompat.fs" />
-    <Compile Include="Logging\Logging.fs" />
-    <Compile Include="Logging\SimpleXmlWriterTraceListener.fs" />
     <Compile Include="Task.fs" />
     <Compile Include="Reflection.fs" />
   </ItemGroup>

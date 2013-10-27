@@ -65,6 +65,7 @@ module AsyncSeq =
       if gd() then x.Combine(seq,x.Delay(fun () -> x.While (gd, seq))) else x.Zero()
     member x.Delay (f:unit -> AsyncSeq<'T>) = 
       async.Delay(f)
+      
 
       
   /// Builds an asynchronou sequence using the computation builder syntax
@@ -143,7 +144,6 @@ module AsyncSeq =
     /// also the AsyncSeq.collect function.
     member x.For (seq:AsyncSeq<'T>, action:'T -> AsyncSeq<'TResult>) = 
       collect action seq
-
 
   // Add asynchronous for loop to the 'async' computation builder
   type Microsoft.FSharp.Control.AsyncBuilder with
@@ -495,6 +495,14 @@ module AsyncSeqExtensions =
       async.Bind(seq, function
         | Nil -> async.Zero()
         | Cons(h, t) -> async.Combine(action h, x.For(t, action)))
+
+#if NET40
+  type AsyncSeq.AsyncSeqBuilder with
+    /// Allow tasks
+    member x.Bind(t:Tasks.Task<'T>, f:'T -> AsyncSeq<'R>) : AsyncSeq<'R> =  asyncSeq.Bind(Async.AwaitTask t, f)
+#endif
+
+
 
 module Seq = 
   open FSharp.Control
